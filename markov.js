@@ -1,12 +1,4 @@
 var EventEmitter = (function() {
-  try {
-    if (process.title === 'node') {
-      return require('events').EventEmitter;
-    }
-  } catch (e) {
-    /* pass... */
-  }
-
   var EventEmitter = function() {
     this._listeners = {};
   };
