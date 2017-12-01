@@ -22,9 +22,8 @@ Markov.Statement = (function() {
   // `to`      - the R.H.S. of the rewrite rule
   // `closing` - boolean whether this is a closing (terminating) statement
   var Statement = function(from, to, closing) {
-    this.setFrom(from);
-    this.setTo(to);
-
+    this.from = from;
+    this.to = to;
     this.closing = closing;
   };
 
@@ -32,13 +31,7 @@ Markov.Statement = (function() {
   // rules into a Markov.Statement.
   //
   // For details, see https://regex101.com/r/OrVles (4 versions)
-  Statement.REGEX = /^\s*(\!?[^\s!\.]*\!?)\s*[=-]\s*>\s*(\.)*\s*(\!?[^\s!\.]*\!?)\s*$/i;
-
-  // Escapes the L.H.S. and R.H.S. contents of a rewrite rule to be a valid regular expression.
-  //
-  Statement.regexpEscape = function(text) {
-    return text.replace(/[-{}()*+?.,\\^$|#\s]/g, "\\$&");
-  };
+  Statement.REGEX = /^\s*(\S*)\s*[=-]\s*>\s*(\.)*\s*(\S*)\s*$/i;
 
   // Compiles a rewrite statement in the form of:
   //
@@ -58,77 +51,24 @@ Markov.Statement = (function() {
   Statement.compile = function(statement) {
     var compiled = Statement.REGEX.exec(statement);
 
-    if (!compiled) {
+    if (!compiled)
       throw new Error('Invalid statement: ' + statement);
-    }
 
-    if (compiled[1].length < 1) {
-      throw new Error('Invalid statement, there is no LHS: ' + statement);
-    }
-
-    if (compiled[3].length < 1) {
-      throw new Error('Invalid statement, there is no RHS: ' + statement);
-    }
-
-    if (compiled[1] === "!!") {
-      throw new Error('Invalid statement, LHS contains two empty word denominators: ' + statement);
-    }
-
-    if (compiled[3] === "!!") {
-      throw new Error('Invalid statement, RHS contains two empty word denominators: ' + statement);
-    }
+    if (compiled[3] == compiled[1])
+      throw new Error('Invalid statement, infinite loop detected: ' + statement);
 
     return new Statement(compiled[1], compiled[3], !!compiled[2]);
   };
 
-  // Sets the `from` property of the Markov.Statement object, i.e. automatically compiles a
-  // searching regular expression for the L.H.S. of the rewrite rule under the
-  // `fromRegExp` property.
+  // Returns a statement as a string.
   //
-  //  **Note:** Neither the compiled reg. exp. nor the `from` property contain the empty
-  // string character. They automatically get compiled to their functional representation.
+  // Examples:
   //
-  Statement.prototype.setFrom = function(from) {
-    var clean = from.replace('!', '').replace('!', '');
-
-    //this.fromRegExp = Statement.regexpEscape(clean);
-
-    if (from === '!') {
-      //this.fromRegExp = new RegExp('(^|$|^$)');
-      this.from = clean;
-
-      return undefined;
-    }
-
-    if (from.search('!') == 0) {
-      //this.fromRegExp = '^' + this.fromRegExp;
-      from = from.replace('!', '');
-    }
-
-    // if (from.search('!') > -1) {
-    //   this.fromRegExp += "$";
-    // }
-
-    //this.fromRegExp = new RegExp(this.fromRegExp);
-    this.from = clean;
-  };
-
-  // Sets the `to` property of the Markov.Statement object.
+  //     "lhs -> rhs"
+  //     "lhs ->. rhs"
   //
-  // **Note:** The `to` property does not contain the empty string character. It automatically
-  // gets cleaned up to its functional representation.
-  //
-  Statement.prototype.setTo = function(to) {
-    var clean = to.replace('!', '').replace('!', '');
-    this.to = clean;
-  };
-
   Statement.prototype.toString = function() {
-    var statement = (this.from.length < 1 ? '!' : this.from);
-    statement += (this.closing ? ' ->. ' : ' -> ')
-    statement += (this.to.length < 1 ? '!' : this.to);
-
-    return statement;
+    return statement = this.from + (!this.closing ? ' -> ' : ' ->. ') + this.to;
   };
 
   return Statement;
@@ -305,14 +245,6 @@ Markov.Runner = (function() {
 
       break;
     }
-
-    // REWRITE FOR NOT NODE.JS
-    //
-    // if ((this.steps.length - 2 > -1) && this.context === this.steps[this.steps.length - 2].context) {
-    //   this._scheduleCall(0, function() {
-    //     this.emit('infinity', { statement: statement, context: this.context });
-    //   }.bind(this));
-    // }
 
     if (!acted || statement.closing) {
       this.stop();
