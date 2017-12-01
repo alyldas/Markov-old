@@ -1,78 +1,3 @@
-var EventEmitter = (function() {
-  var EventEmitter = function() {
-    this._listeners = {};
-  };
-
-  EventEmitter.prototype.emit = function(event) {
-    var args = Array.prototype.slice.call(arguments, 1);
-
-    if (this._listeners[event]) {
-      var remove = [];
-
-      for (var i = 0; i < this._listeners[event].length; i++) {
-        var listener = this._listeners[event][i];
-
-        if (listener.once) {
-          remove.push(listener);
-          listener = listener.listener;
-        }
-
-        listener.apply(null, args);
-      }
-    }
-
-    for (var i = 0; i < remove.length; i++) {
-      this.removeListener(event, listener);
-    }
-  };
-
-  EventEmitter.prototype.listeners = function(event) {
-    return new Array(this._listeners[event]);
-  };
-
-  EventEmitter.prototype.addListener = function(event, listener) {
-    if (!this._listeners[event]) {
-      this._listeners[event] = [listener];
-    } else {
-      this._listeners[event].push(listener);
-    }
-
-    return listener;
-  };
-
-  EventEmitter.prototype.on = EventEmitter.prototype.addListener;
-
-  EventEmitter.prototype.removeListener = function(event, listener) {
-    if (!this._listeners[event]) {
-      return null;
-    }
-
-    var index = this._listeners[event].indexOf(listener);
-
-    if (index > -1) {
-      this._listeners[event] = this._listeners[event].slice(0, index).concat(this._listeners.slice(index + 1));
-
-      return listener;
-    }
-
-    return null;
-  };
-
-  EventEmitter.prototype.once = function(event, listener) {
-    return this.addListener(event, { once: true, listener: listener });
-  };
-
-  EventEmitter.prototype.removeAllListeners = function(event) {
-    var listeners = this._listeners[event];
-
-    delete this._listeners[event];
-
-    return listeners;
-  };
-
-  return EventEmitter;
-}).call();
-
 // Markov is a simple Markov algorithm (famously known as Normal algorithms) interpreter.
 //
 // There are 3 components to this library:
@@ -166,25 +91,25 @@ Markov.Statement = (function() {
   Statement.prototype.setFrom = function(from) {
     var clean = from.replace('!', '').replace('!', '');
 
-    this.fromRegExp = Statement.regexpEscape(clean);
+    //this.fromRegExp = Statement.regexpEscape(clean);
 
     if (from === '!') {
-      this.fromRegExp = new RegExp('(^|$|^$)');
+      //this.fromRegExp = new RegExp('(^|$|^$)');
       this.from = clean;
 
       return undefined;
     }
 
     if (from.search('!') == 0) {
-      this.fromRegExp = '^' + this.fromRegExp;
+      //this.fromRegExp = '^' + this.fromRegExp;
       from = from.replace('!', '');
     }
 
-    if (from.search('!') > -1) {
-      this.fromRegExp += "$";
-    }
+    // if (from.search('!') > -1) {
+    //   this.fromRegExp += "$";
+    // }
 
-    this.fromRegExp = new RegExp(this.fromRegExp);
+    //this.fromRegExp = new RegExp(this.fromRegExp);
     this.from = clean;
   };
 
@@ -311,12 +236,6 @@ Markov.Runner = (function() {
   // `steps`     - an array of `{ context: ..., statement: ... }` containing all of the steps
   // `done`      - boolean whether the execution has finished
   //
-  //  *Events*:
-  //
-  // `infinity` - when an infinite sequence is detected, it is up to you to #stop() the Runner
-  // `step`     - after calling #run(), represents a single step in the execution
-  // `done`     - after calling #run(), when the algorithm closes (terminates) normally
-  //
   var Runner = function(algorithm, context) {
     if (!algorithm || !(algorithm instanceof Markov.Algorithm)) {
       throw new Error('Markov.Runner requires a non-null Markov.Algorithm to run.');
@@ -326,97 +245,31 @@ Markov.Runner = (function() {
       throw new Error('Markov.Runner requires a non-null String context.');
     }
 
-    EventEmitter.call(this);
-
     this.context = context;
     this.algorithm = algorithm;
 
     this.steps = [];
     this.done = false;
-
-    this._scheduledCalls = [];
   };
 
-  // Markov.Runner extends EventEmitter.
-  Runner.prototype = Object.create(EventEmitter.prototype);
-
-  // Internal: Schedules a call sometime in the future (next tick or longer).
+  // Runs the current Markov.Algorithm over the string context.
   //
-  // `when` - 0 for next tick, > 0 for time in ms.
-  // `call` - function to call
-  //
-  // Other arguments will be passed to `call`.
-  Runner.prototype._scheduleCall = function(when, call) {
-    var args = Array.prototype.slice.call(arguments, 1),
-      id = this._scheduledCalls.length;
-
-    this._scheduledCalls.push(setTimeout(function() {
-      this._scheduledCalls = this._scheduledCalls.slice(0, id).concat(this._scheduledCalls.slice(id + 1));
-
-      call.apply(this, args);
-    }.bind(this), when));
-  };
-
-  // Internal: Gets rid of all calls scheduled for the future.
-  Runner.prototype._unscheduleCalls = function() {
-    for (var i = 0; i < this._scheduledCalls.length; i++) {
-      clearTimeout(this._scheduledCalls[i]);
-    }
-
-    this._scheduledCalls = [];
-  };
-
-  // Internal: Does the actual job of #run().
-  Runner.prototype._run = function(interval) {
-    if (this.done) {
-      return;
-    }
-
-    var statement = this.step();
-
-    if (statement) {
-      this.emit('step', { before: this.steps[this.steps.length - 2].context, statement: statement, after: this.context });
-
-      this._scheduleCall(interval || 0, function() {
-        this._run.call(this, interval);
-      }.bind(this));
-    }
-  };
-
-  // Runs the current Markov.Algorithm over the string context in descrete intervals.
-  //
-  // After calling this, expect the events `step`, `done` and `infinity`.
-  //
-  // `interval` - (default: 0) time in milliseconds, when to execute the next step of the algorithm
   Runner.prototype.run = function(interval) {
     if (this.done) {
       return false;
     }
 
-    this._scheduleCall(0, function() {
-      this._run.call(this, interval);
-    }.bind(this));
+    while (!this.done) this.step();
 
     return true;
   };
 
-  // Stops the Markov.Runner, after this the `done` property will be set to `true` and the
-  // `done` event will be emitted.
+  // Stops the Markov.Runner, after this the `done` property will be set to `true`.
   //
   Runner.prototype.stop = function() {
     this.done = true;
-
-    this._unscheduleCalls();
-
-    this._scheduleCall(0, function() {
-      this.emit('done');
-      this._unscheduleCalls();
-    }.bind(this));
   };
 
-  // Steps through the execution of the Markov.Algorithm. Does **not** emit the `step` event.
-  // Expect events: `done` and `infinity` to be emitted.
-  //
   // Returns the Markov.Statement from the algorithm that was chosen, or `null` if none was
   // applicable (natural termination).
   //
@@ -440,8 +293,8 @@ Markov.Runner = (function() {
       var to = statement.to,
         from = statement.from;
 
-      if (this.context.search(statement.fromRegExp) > -1) {
-        this.context = this.context.replace(statement.fromRegExp, statement.to);
+      if (this.context.search(statement.from) > -1) {
+        this.context = this.context.replace(statement.from, statement.to);
       } else {
         continue;
       }
@@ -453,11 +306,13 @@ Markov.Runner = (function() {
       break;
     }
 
-    if ((this.steps.length - 2 > -1) && this.context === this.steps[this.steps.length - 2].context) {
-      this._scheduleCall(0, function() {
-        this.emit('infinity', { statement: statement, context: this.context });
-      }.bind(this));
-    }
+    // REWRITE FOR NOT NODE.JS
+    //
+    // if ((this.steps.length - 2 > -1) && this.context === this.steps[this.steps.length - 2].context) {
+    //   this._scheduleCall(0, function() {
+    //     this.emit('infinity', { statement: statement, context: this.context });
+    //   }.bind(this));
+    // }
 
     if (!acted || statement.closing) {
       this.stop();
