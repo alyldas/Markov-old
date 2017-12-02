@@ -118,9 +118,8 @@ Markov.Algorithm = (function() {
   // a Markov.Runner.
   //
   Algorithm.prototype.setStatement = function(statement, position) {
-    if (!(statement instanceof Markov.Statement)) {
+    if (!(statement instanceof Markov.Statement))
       throw new Error('Statement must be an instance of Markov.Statement.');
-    }
 
     var previous = this.statements[position];
     this.statements[position] = statement;
@@ -136,9 +135,8 @@ Markov.Algorithm = (function() {
   //               if greather than the number of statements or omitted, puts it at the end
   //
   Algorithm.prototype.addStatement = function(statement, position) {
-    if (!(statement instanceof Markov.Statement)) {
+    if (!(statement instanceof Markov.Statement))
       throw new Error('Statement must be an instance of Markov.Statement.');
-    }
 
     if (typeof position === 'undefined' || typeof position === 'null' || statement < 0 || statement > this.statements.length) {
       this.statements.push(statement);
