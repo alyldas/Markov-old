@@ -31,7 +31,7 @@ Markov.Statement = (function() {
   // rules into a Markov.Statement.
   //
   // For details, see https://regex101.com/r/OrVles (4 versions)
-  Statement.REGEX = /^\s*(\S*)\s*[=-]\s*>\s*(\.)*\s*(\S*)\s*$/i;
+  Statement.REGEX = /\s*(\S*)\s*[=-]\s*>\s*(\.)*\s*(\S*)\s*/i;
 
   // Compiles a rewrite statement in the form of:
   //
@@ -58,6 +58,18 @@ Markov.Statement = (function() {
       throw new Error('Invalid statement, infinite loop detected: ' + statement);
 
     return new Statement(compiled[1], compiled[3], !!compiled[2]);
+  };
+
+  // Sets the `from` property of the Markov.Statement object.
+  //
+  Statement.prototype.setFrom = function(from) {
+    this.from = from;
+  };
+
+  // Sets the `to` property of the Markov.Statement object.
+  //
+  Statement.prototype.setTo = function(to) {
+    this.to = to;
   };
 
   // Returns a statement as a string.
